@@ -13,14 +13,28 @@ function App() {
 	const [nextPageUrl, setNextPageUrl] = useState(null);
 	const [prevPageUrl, setPrevPageUrl] = useState(null);
 
+	const [loading, setLoading] = useState(true);
+
 	useEffect(() => {
-		axios.get(currentPageUrl).then((res) => {
-			console.log(res.data);
-			setPokemons(res.data.results.map((pokemon) => pokemon.name));
-			setNextPageUrl(res.data.next);
-			setPrevPageUrl(res.data.previous);
-		});
+		setLoading(true);
+
+		let cancel;
+
+		axios
+			.get(currentPageUrl, {
+				cancelToken: new axios.CancelToken((c) => (cancel = c)),
+			})
+			.then((res) => {
+				setPokemons(res.data.results.map((pokemon) => pokemon.name));
+				setNextPageUrl(res.data.next);
+				setPrevPageUrl(res.data.previous);
+				setLoading(false);
+			});
+
+		return () => cancel();
 	}, [currentPageUrl]);
+
+	if (loading) return <p>Loading</p>;
 
 	function gotoNextPage() {
 		setCurrentPageUrl(nextPageUrl);
@@ -34,7 +48,10 @@ function App() {
 		<div style={{ textAlign: "center" }}>
 			<h1 style={{ margin: "1rem auto" }}>Pokemon API</h1>
 			<PokemonList pokemons={pokemons} />
-			<Pagination nextPage={gotoNextPage} prevPage={gotoPrevPage} />
+			<Pagination
+				nextPage={nextPageUrl ? gotoNextPage : null}
+				prevPage={prevPageUrl ? gotoPrevPage : null}
+			/>
 		</div>
 	);
 }
